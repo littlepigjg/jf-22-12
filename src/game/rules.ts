@@ -100,6 +100,7 @@ export function resolveShot(
   currentPlayerId: number,
   foul: FoulType,
   groupsAssigned: boolean,
+  handicapBalls: number = 0,
 ): ResolveResult {
   const hasFoul = foul !== FoulTypeEnum.NONE;
   let switchTurn = true;
@@ -112,7 +113,7 @@ export function resolveShot(
   let hintMessage: string | null = null;
 
   if (mode === '8ball' && !groupsAssigned && pocketedNonCue.length > 0 && !hasFoul) {
-    const assignResult = assignGroupsOnFirstPocket(balls, pocketedNonCue, currentPlayers, currentPlayerId);
+    const assignResult = assignGroupsOnFirstPocket(balls, pocketedNonCue, currentPlayers, currentPlayerId, handicapBalls);
     currentPlayers = assignResult.updatedPlayers;
     groupsNowAssigned = assignResult.groupsAssigned;
     if (assignResult.hintMessage) {

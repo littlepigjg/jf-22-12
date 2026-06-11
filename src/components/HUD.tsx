@@ -12,6 +12,8 @@ export default function HUD() {
   const targetBallHint = useGameStore((s) => s.targetBallHint);
   const turnNumber = useGameStore((s) => s.turnNumber);
   const phase = useGameStore((s) => s.phase);
+  const handicapBalls = useGameStore((s) => s.handicapBalls);
+  const playMode = useGameStore((s) => s.playMode);
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId);
 
@@ -30,6 +32,7 @@ export default function HUD() {
           active={currentPlayerId === 0}
           mode={mode}
           balls={balls}
+          handicapBalls={handicapBalls > 0 && playMode === 'pve' ? handicapBalls : 0}
         />
         <PlayerCard
           player={player2}
@@ -53,6 +56,12 @@ export default function HUD() {
         </div>
 
         <div className="flex items-center gap-3">
+          {handicapBalls > 0 && playMode === 'pve' && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-900/40 border border-amber-600/40">
+              <span className="text-amber-400 text-xs font-bold">让分</span>
+              <span className="text-amber-200 text-sm font-black">{handicapBalls}球</span>
+            </div>
+          )}
           {legalIds.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-zinc-400 text-sm">目标球：</span>
@@ -84,12 +93,14 @@ function PlayerCard({
   mode,
   balls,
   reverse = false,
+  handicapBalls = 0,
 }: {
   player?: { id: number; name: string; isAI: boolean; group?: 'solid' | 'stripe' | null; score: number; aiDifficulty?: 'easy' | 'hard' };
   active: boolean;
   mode: GameMode;
   balls: { id: number; pocketed: boolean; stripe: boolean }[];
   reverse?: boolean;
+  handicapBalls?: number;
 }) {
   if (!player) return null;
 
@@ -133,7 +144,12 @@ function PlayerCard({
             {player.isAI ? 'AI' : player.id + 1}
           </div>
           <div className={reverse ? 'text-right' : ''}>
-            <div className="font-bold text-zinc-100">{player.name}</div>
+            <div className="font-bold text-zinc-100 flex items-center gap-1.5">
+              <span>{player.name}</span>
+              {handicapBalls > 0 && !player.isAI && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-800/50 text-amber-300 border border-amber-600/40 font-bold">让{handicapBalls}球</span>
+              )}
+            </div>
             {player.isAI && player.aiDifficulty && (
               <div className="text-xs text-rose-300/70">
                 {player.aiDifficulty === 'easy' ? '简单难度' : '困难难度'}

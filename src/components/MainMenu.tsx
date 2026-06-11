@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { CircleDot, Trophy, Users, Bot, ChevronRight, Play, BookOpenCheck } from 'lucide-react';
+import { CircleDot, Trophy, Users, Bot, ChevronRight, Play, BookOpenCheck, Minus } from 'lucide-react';
 import { useGameStore } from '../stores/useGameStore';
 import type { GameMode, PlayMode } from '../game/types';
 import { loadSettings, saveSettings } from '../utils/storage';
@@ -11,23 +11,28 @@ export default function MainMenu() {
   const setSelectedGameMode = useGameStore((s) => s.setSelectedGameMode);
   const setSelectedPlayMode = useGameStore((s) => s.setSelectedPlayMode);
   const setSelectedAIDifficulty = useGameStore((s) => s.setSelectedAIDifficulty);
+  const setSelectedHandicapBalls = useGameStore((s) => s.setSelectedHandicapBalls);
   const setMenuTab = useGameStore((s) => s.setMenuTab);
 
   const [mode, setMode] = useState<GameMode>('8ball');
   const [playMode, setPlayMode] = useState<PlayMode>('pve');
   const [difficulty, setDifficulty] = useState<'easy' | 'hard'>('easy');
+  const [handicap, setHandicap] = useState<number>(0);
 
   useEffect(() => {
     const s = loadSettings();
     setDifficulty(s.aiDifficulty);
+    setHandicap(s.handicapBalls ?? 0);
   }, []);
 
   const handleStart = () => {
+    const effectiveHandicap = (playMode === 'pve' && difficulty === 'hard') ? handicap : 0;
     setSelectedGameMode(mode);
     setSelectedPlayMode(playMode);
     setSelectedAIDifficulty(difficulty);
-    saveSettings({ aiDifficulty: difficulty });
-    startGame(mode, playMode, difficulty);
+    setSelectedHandicapBalls(effectiveHandicap);
+    saveSettings({ aiDifficulty: difficulty, handicapBalls: effectiveHandicap });
+    startGame(mode, playMode, difficulty, effectiveHandicap);
     navigate('/game');
   };
 
@@ -114,7 +119,7 @@ export default function MainMenu() {
                 <div className="grid grid-cols-2 gap-3 mb-2">
                   <DifficultyCard
                     active={difficulty === 'easy'}
-                    onClick={() => setDifficulty('easy')}
+                    onClick={() => { setDifficulty('easy'); setHandicap(0); }}
                     title="简单"
                     desc="入门友好"
                   />
@@ -124,6 +129,40 @@ export default function MainMenu() {
                     title="困难"
                     desc="会做安全球"
                   />
+                </div>
+              </>
+            )}
+
+            {playMode === 'pve' && difficulty === 'hard' && mode === '8ball' && (
+              <>
+                <div className="mt-4 text-xs uppercase tracking-widest text-zinc-500 mb-3 font-bold flex items-center gap-1.5">
+                  <Minus className="w-3 h-3" />
+                  让分设置
+                </div>
+                <div className="mb-2">
+                  <div className="text-[11px] text-zinc-500 mb-2">玩家主动让出若干己方球（标记为已进袋），平衡实力差距</div>
+                  <div className="flex gap-2">
+                    {[0, 1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setHandicap(n)}
+                        className={`flex-1 py-2 rounded-lg border-2 text-center transition-all text-sm font-bold ${
+                          handicap === n
+                            ? n === 0
+                              ? 'bg-zinc-700/50 border-zinc-500/60 text-zinc-200'
+                              : 'bg-gradient-to-br from-amber-900/40 to-amber-950/60 border-amber-500/70 text-amber-200 shadow-[0_0_16px_rgba(212,168,75,0.15)]'
+                            : 'bg-zinc-800/30 border-zinc-700/40 text-zinc-500 hover:border-zinc-600'
+                        }`}
+                      >
+                        {n === 0 ? '不让' : `让${n}球`}
+                      </button>
+                    ))}
+                  </div>
+                  {handicap > 0 && (
+                    <div className="mt-2 text-[11px] text-amber-300/80 bg-amber-900/20 border border-amber-700/30 rounded-lg px-3 py-1.5">
+                      开局时将随机从你的花色组中标记 {handicap} 颗球为已进袋，你需打进更少的球但起始分数更低
+                    </div>
+                  )}
                 </div>
               </>
             )}

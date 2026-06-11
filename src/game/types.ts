@@ -92,6 +92,7 @@ export interface GameState {
   replayRecording: boolean;
   freeBall: boolean;
   groupsAssigned: boolean;
+  handicapBalls: number;
 }
 
 export interface ReplayFile {

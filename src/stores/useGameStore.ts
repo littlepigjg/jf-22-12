@@ -36,6 +36,7 @@ interface UIState {
   selectedGameMode: GameMode;
   selectedPlayMode: PlayMode;
   selectedAIDifficulty: 'easy' | 'hard';
+  selectedHandicapBalls: number;
   menuTab: 'home' | 'replays';
   replayId: string | null;
   replayProgress: number;
@@ -48,6 +49,7 @@ interface GameStore extends GameState, UIState {
     mode: GameMode,
     playMode: PlayMode,
     aiDifficulty: 'easy' | 'hard',
+    handicapBalls?: number,
   ) => void;
   resetGame: () => void;
   setAimAngle: (angle: number) => void;
@@ -63,6 +65,7 @@ interface GameStore extends GameState, UIState {
   setSelectedGameMode: (m: GameMode) => void;
   setSelectedPlayMode: (m: PlayMode) => void;
   setSelectedAIDifficulty: (d: 'easy' | 'hard') => void;
+  setSelectedHandicapBalls: (n: number) => void;
   setMenuTab: (t: 'home' | 'replays') => void;
   setReplayId: (id: string | null) => void;
   setReplayProgress: (p: number) => void;
@@ -115,6 +118,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   replayRecording: false,
   freeBall: false,
   groupsAssigned: false,
+  handicapBalls: 0,
 
   aimAngle: 0,
   power: 0,
@@ -123,15 +127,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedGameMode: '8ball',
   selectedPlayMode: 'pve',
   selectedAIDifficulty: 'easy',
+  selectedHandicapBalls: 0,
   menuTab: 'home',
   replayId: null,
   replayProgress: 0,
   replayPlaying: false,
   replaySpeed: 1,
 
-  startGame: (mode, playMode, aiDifficulty) => {
+  startGame: (mode, playMode, aiDifficulty, handicapBalls = 0) => {
     const balls = setupBalls(mode);
     const players = createPlayers(playMode, aiDifficulty);
+    const effectiveHandicap = (playMode === 'pve' && aiDifficulty === 'hard') ? handicapBalls : 0;
     startRecording(balls);
 
     set({
@@ -151,6 +157,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       replayRecording: true,
       freeBall: false,
       groupsAssigned: false,
+      handicapBalls: effectiveHandicap,
       aimAngle: 0,
       power: 0,
       isCharging: false,
@@ -158,8 +165,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetGame: () => {
-    const { mode, playMode, selectedAIDifficulty } = get();
-    get().startGame(mode, playMode, selectedAIDifficulty);
+    const { mode, playMode, selectedAIDifficulty, selectedHandicapBalls } = get();
+    get().startGame(mode, playMode, selectedAIDifficulty, selectedHandicapBalls);
   },
 
   setAimAngle: (angle) => set({ aimAngle: angle }),
@@ -248,6 +255,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.currentPlayerId,
       foulResult.foul,
       s.groupsAssigned,
+      s.handicapBalls,
     );
 
     const updatedPlayers = resolve.updatedPlayers;
@@ -338,6 +346,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setSelectedGameMode: (m) => set({ selectedGameMode: m }),
   setSelectedPlayMode: (m) => set({ selectedPlayMode: m }),
   setSelectedAIDifficulty: (d) => set({ selectedAIDifficulty: d }),
+  setSelectedHandicapBalls: (n) => set({ selectedHandicapBalls: n }),
   setMenuTab: (t) => set({ menuTab: t }),
   setReplayId: (id) => set({ replayId: id, replayProgress: 0, replayPlaying: false }),
   setReplayProgress: (p) => set({ replayProgress: p }),

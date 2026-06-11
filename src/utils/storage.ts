@@ -42,12 +42,14 @@ export function getReplay(id: string): ReplayFile | null {
 
 interface GameSettings {
   aiDifficulty: 'easy' | 'hard';
+  handicapBalls: number;
   showAimLine: boolean;
   volume: number;
 }
 
 const defaultSettings: GameSettings = {
   aiDifficulty: 'easy',
+  handicapBalls: 0,
   showAimLine: true,
   volume: 0.7,
 };

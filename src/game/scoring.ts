@@ -70,26 +70,28 @@ export function assignGroupsOnFirstPocket(
   pocketedNonCue: number[],
   players: Player[],
   currentPlayerId: number,
+  handicapBalls: number = 0,
 ): {
   updatedPlayers: Player[];
   groupsAssigned: boolean;
   hintMessage: string | null;
+  handicapAppliedIds: number[];
 } {
   if (pocketedNonCue.length === 0) {
-    return { updatedPlayers: players, groupsAssigned: false, hintMessage: null };
+    return { updatedPlayers: players, groupsAssigned: false, hintMessage: null, handicapAppliedIds: [] };
   }
 
   const firstPocketed = pocketedNonCue[0];
   const ball = balls.find((b) => b.id === firstPocketed);
   if (!ball || ball.id === 8) {
-    return { updatedPlayers: players, groupsAssigned: false, hintMessage: null };
+    return { updatedPlayers: players, groupsAssigned: false, hintMessage: null, handicapAppliedIds: [] };
   }
 
   const currentPlayer = players.find((p) => p.id === currentPlayerId)!;
   const otherPlayer = players.find((p) => p.id !== currentPlayerId)!;
 
   if (currentPlayer.group || otherPlayer.group) {
-    return { updatedPlayers: players, groupsAssigned: true, hintMessage: null };
+    return { updatedPlayers: players, groupsAssigned: true, hintMessage: null, handicapAppliedIds: [] };
   }
 
   const p1Group: 'solid' | 'stripe' = ball.stripe ? 'stripe' : 'solid';
@@ -103,10 +105,35 @@ export function assignGroupsOnFirstPocket(
   const name = currentPlayer.name;
   const groupLabel = p1Group === 'solid' ? '全色球' : '半色球';
 
+  let handicapHintSuffix = '';
+  const handicapAppliedIds: number[] = [];
+
+  if (handicapBalls > 0) {
+    const humanPlayer = updatedPlayers.find((p) => !p.isAI);
+    if (humanPlayer) {
+      const groupBalls = balls.filter(
+        (b) => !b.pocketed && b.id !== 0 && b.id !== 8 && (
+          humanPlayer.group === 'solid' ? !b.stripe : b.stripe
+        ),
+      );
+      const shuffled = [...groupBalls].sort(() => Math.random() - 0.5);
+      const toRemove = shuffled.slice(0, Math.min(handicapBalls, shuffled.length));
+      for (const b of toRemove) {
+        b.pocketed = true;
+        b.pocketedAt = Date.now();
+        handicapAppliedIds.push(b.id);
+      }
+      if (toRemove.length > 0) {
+        handicapHintSuffix = `（让分：${toRemove.length}颗${groupLabel}已标记进袋）`;
+      }
+    }
+  }
+
   return {
     updatedPlayers,
     groupsAssigned: true,
-    hintMessage: `${name} 已分配：${groupLabel}`,
+    hintMessage: `${name} 已分配：${groupLabel}${handicapHintSuffix}`,
+    handicapAppliedIds,
   };
 }
 

@@ -16,6 +16,7 @@ import {
   FOUL_MESSAGES,
 } from '../game/constants';
 import { setupBalls, resetCueBall, placeCueBall } from '../game/table-setup';
+import { applyHandicap, getHandicapGroupLabel } from '../game/handicap';
 import { applyShot, allBallsStopped, stepPhysics } from '../game/physics';
 import { checkFoul, resolveShot, getLegalFirstBalls } from '../game/rules';
 import { decideAIShot } from '../game/ai';
@@ -135,9 +136,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
   replaySpeed: 1,
 
   startGame: (mode, playMode, aiDifficulty, handicapBalls = 0) => {
-    const balls = setupBalls(mode);
-    const players = createPlayers(playMode, aiDifficulty);
-    const effectiveHandicap = (playMode === 'pve' && aiDifficulty === 'hard') ? handicapBalls : 0;
+    let balls = setupBalls(mode);
+    let players = createPlayers(playMode, aiDifficulty);
+    let groupsAssigned = false;
+    let targetBallHint: string | null = null;
+    const effectiveHandicap = (playMode === 'pve' && aiDifficulty === 'hard' && mode === '8ball') ? handicapBalls : 0;
+
+    if (effectiveHandicap > 0) {
+      const handicapResult = applyHandicap(balls, players, effectiveHandicap);
+      balls = handicapResult.balls;
+      players = handicapResult.updatedPlayers;
+      groupsAssigned = handicapResult.groupsAssigned;
+      const humanPlayer = players.find((p) => !p.isAI)!;
+      const groupLabel = getHandicapGroupLabel(humanPlayer.group!);
+      targetBallHint = `让分已生效：${humanPlayer.name} ${groupLabel} · ${effectiveHandicap}颗已标记进袋`;
+    }
+
     startRecording(balls);
 
     set({
@@ -153,10 +167,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       foulMessage: null,
       winner: null,
       turnNumber: 1,
-      targetBallHint: null,
+      targetBallHint,
       replayRecording: true,
       freeBall: false,
-      groupsAssigned: false,
+      groupsAssigned,
       handicapBalls: effectiveHandicap,
       aimAngle: 0,
       power: 0,
@@ -255,7 +269,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       s.currentPlayerId,
       foulResult.foul,
       s.groupsAssigned,
-      s.handicapBalls,
     );
 
     const updatedPlayers = resolve.updatedPlayers;
